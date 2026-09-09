@@ -1,6 +1,6 @@
 # Spike: dlopen of protocol-free module frameworks on iOS
 
-Branch `spike/ios-dlopen-bare-module` (fork `alexjba/logos-basecamp`), 2026-09-09.
+Branch `spike/ios-dlopen-bare-module` (fork `alexjba/logos-basecamp`), 2026-09-09. Commit b932e87 (report hash added in the follow-up commit).
 Sources under `spike/ios-dlopen/`; host wiring in `shell-preview/platform/ios/app/CMakeLists.txt`
 (`SPIKE_IOS_DLOPEN=ON`) and `shell-preview/src/main.cpp`. Raw per-run output in `spike/ios-dlopen/results/`.
 
