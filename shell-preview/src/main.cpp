@@ -25,6 +25,10 @@
 #include <QMainWindow>
 #include <QPluginLoader>
 
+#if defined(SPIKE_IOS_DLOPEN)
+#include "SpikeDlopen.h"
+#endif
+
 #if defined(SHELL_PREVIEW_STATIC_SHELL)
 // main_ui built with MAIN_UI_STATIC is linked in (always on iOS, where static
 // Qt cannot dlopen a plugin) and reached through staticInstances() instead.
@@ -129,6 +133,9 @@ int main(int argc, char* argv[])
 #else
     window.resize(1280, 860);
     window.show();
+#endif
+#if defined(SPIKE_IOS_DLOPEN)
+    spikeRunAll(&window);
 #endif
 
     const int rc = app.exec();

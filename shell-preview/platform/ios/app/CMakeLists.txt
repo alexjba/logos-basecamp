@@ -34,6 +34,51 @@ qt_add_resources(BasecampShellPreview "shell_preview_fixture"
     FILES ${BASECAMP_FIXTURE}
 )
 
+# --- spike/ios-dlopen: embed the three prebuilt spike frameworks and run the
+# dlopen levels at startup. Off by default; spike/ios-dlopen/run.sh turns it on.
+option(SPIKE_IOS_DLOPEN "Embed and dlopen the spike frameworks at startup" OFF)
+set(SPIKE_FRAMEWORKS_DIR "" CACHE PATH "Directory holding BareA/BareB/SpikeUi .framework")
+set(SPIKE_QT_EXPORT_ARCHIVES "" CACHE STRING "Visibility-patched Qt archives linked ahead of Qt so their symbols are exported")
+set(SPIKE_UNDEFINED_SYMBOLS "" CACHE FILEPATH "Symbols SpikeUi leaves undefined; forced in and exported by the app")
+set(SPIKE_EXPORT_MODE "all" CACHE STRING "all: default export of every global; list: -exported_symbols_list of just what the frameworks need")
+if(SPIKE_IOS_DLOPEN)
+    set(SPIKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../spike/ios-dlopen)
+    target_sources(BasecampShellPreview PRIVATE ${SPIKE_DIR}/host/SpikeDlopen.cpp ${SPIKE_DIR}/host/SpikeDlopen.h)
+    target_include_directories(BasecampShellPreview PRIVATE ${SPIKE_DIR}/host)
+    target_compile_definitions(BasecampShellPreview PRIVATE SPIKE_IOS_DLOPEN)
+    set(spike_fws "")
+    foreach(fw BareA BareB SpikeUi)
+        list(APPEND spike_fws ${SPIKE_FRAMEWORKS_DIR}/${fw}.framework)
+    endforeach()
+    set_target_properties(BasecampShellPreview PROPERTIES
+        XCODE_EMBED_FRAMEWORKS "${spike_fws}"
+        XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY ON
+        XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY ON
+        XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks"
+    )
+    # Patched archives go FIRST on the link line (as a link option, ahead of
+    # every library) so their now-external members satisfy the references
+    # instead of the hidden store copies.
+    foreach(archive ${SPIKE_QT_EXPORT_ARCHIVES})
+        target_link_options(BasecampShellPreview PRIVATE ${archive})
+    endforeach()
+    set(spike_roots _lp_protocol_version)
+    if(SPIKE_UNDEFINED_SYMBOLS)
+        file(STRINGS ${SPIKE_UNDEFINED_SYMBOLS} spike_undef)
+        foreach(sym ${spike_undef})
+            # -u: pull the archive member in and keep it through -dead_strip.
+            target_link_options(BasecampShellPreview PRIVATE "LINKER:-u,${sym}")
+            list(APPEND spike_roots ${sym})
+        endforeach()
+    endif()
+    if(SPIKE_EXPORT_MODE STREQUAL "list")
+        set(spike_exports ${CMAKE_CURRENT_BINARY_DIR}/spike-exports.txt)
+        list(JOIN spike_roots "\n" spike_roots_text)
+        file(WRITE ${spike_exports} "${spike_roots_text}\n")
+        target_link_options(BasecampShellPreview PRIVATE "LINKER:-exported_symbols_list,${spike_exports}")
+    endif()
+endif()
+
 # Qt6::Svg is linked here and not by the shell: it exists only to pull the
 # static qsvg image format plugin into the bundle for the sidebar icons.
 target_link_libraries(BasecampShellPreview PRIVATE

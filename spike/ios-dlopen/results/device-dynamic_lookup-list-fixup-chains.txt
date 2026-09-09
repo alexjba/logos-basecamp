@@ -1,0 +1,33 @@
+mode=dynamic_lookup export=list fixup_chains=--fixup-chains qt_patch=1 sdk=iphoneos
+app exe bytes: 45834112
+app bundle bytes: 45072K
+BareA bytes: 69200  Signature size=4807 TeamIdentifier=8B5X2M6H2Y 
+BareB bytes: 69200  Signature size=4807 TeamIdentifier=8B5X2M6H2Y 
+SpikeUi bytes: 89856  Signature size=4807 TeamIdentifier=8B5X2M6H2Y 
+exported symbols (nm -gU): 27
+export trie:  datasize 976
+chained fixups:  datasize 29024
+app codesign: Authority=Apple Development: Alexandru Jbanca (P7Y35346DL) TeamIdentifier=8B5X2M6H2Y 
+
+[spike] ---- iOS dlopen spike: app image lp_protocol_version()=0.8.0+spike-host-standin at 0x102a981fc, executable=/private/var/containers/Bundle/Application/455C97F1-16A1-47D3-A27E-E45E536C56A1/BasecampShellPreview.app/BasecampShellPreview
+[spike] L1 dlopen(BareA) ok in 9.793 ms
+[spike] L1 BareA: dispatch=11ce9c000 methods=[{"kind":"method","name":"whoami","params":[],"returns":"object"}] module_protocol=0.8.0+spike-A whoami.module=A whoami.host_protocol=0.8.0+spike-host-standin (host has 0.8.0+spike-host-standin)
+[spike] L1 verdict: PASS
+[spike] L3 dlopen(BareB) ok in 6.560 ms
+[spike] L3 BareA: dispatch=11ce9c000 methods=[{"kind":"method","name":"whoami","params":[],"returns":"object"}] module_protocol=0.8.0+spike-A whoami.module=A whoami.host_protocol=0.8.0+spike-host-standin (host has 0.8.0+spike-host-standin)
+[spike] L3 BareB: dispatch=11ceb0000 methods=[{"kind":"method","name":"whoami","params":[],"returns":"object"}] module_protocol=0.8.0+spike-B whoami.module=B whoami.host_protocol=0.8.0+spike-host-standin (host has 0.8.0+spike-host-standin)
+[spike] L3 dlsym(RTLD_DEFAULT, logos_module_dispatch) = 0x0 (expect null: RTLD_LOCAL)
+[spike] L3 verdict: PASS
+[spike] L2 dlopen(SpikeUi) ok in 7.631 ms
+[spike] L2 qrc:/spike/SpikeView.qml registered: before=0 after=1 (static initializer -> qRegisterResourceData in the app)
+[spike] L2 created SpikeUiModule (metaobject 0x11d334120, superclass QObject), 3 properties, 10 methods
+[spike] L2 Q_PROPERTY greeting: initial="hello from SpikeUi.framework" after set="set by host via QObject::setProperty"
+[spike] L2 connect(reported)=1 invokeMethod(imageAddress)=1 -> 0x11d330270
+[spike][SpikeUi.framework] report: SpikeView.qml completed; greeting=set by host via QObject::setProperty
+[spike] host received SpikeUi signal reported(): SpikeView.qml completed; greeting=set by host via QObject::setProperty
+[spike] L2 setSource(qrc:/spike/SpikeView.qml) status=1 in 7.058 ms
+[spike] L2 QML Component.onCompleted reports received by host: 1 (last: SpikeView.qml completed; greeting=set by host via QObject::setProperty)
+[spike] L2 verdict: PASS
+[spike] dyld images: 1156 before, 1159 after
+SPIKE RESULT level1=PASS level2=PASS level3=PASS dlopen_ms bareA=9.793 bareB=6.560 spikeUi=7.631
+[spike] L2 after 2.5 s: counter=4 (bumped from QML), view status=1

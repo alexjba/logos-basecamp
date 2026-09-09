@@ -1,0 +1,24 @@
+mode=dynamic_lookup export=all fixup_chains=default qt_patch=0 sdk=iphonesimulator
+app exe bytes: 45879352
+app bundle bytes: 45000K
+BareA bytes: 51160  Signature=adhoc TeamIdentifier=not set 
+BareB bytes: 51160  Signature=adhoc TeamIdentifier=not set 
+SpikeUi bytes: 55576  Signature=adhoc TeamIdentifier=not set 
+exported symbols (nm -gU): 928
+export trie:  datasize 43104
+chained fixups:  datasize 54800
+app codesign: TeamIdentifier=not set 
+
+[spike] ---- iOS dlopen spike: app image lp_protocol_version()=0.8.0+spike-host-standin at 0x100f42b60, executable=/Users/alexjbanca/Library/Developer/CoreSimulator/Devices/40696C9C-F8EE-483F-83FF-AFA89CCC5FE7/data/Containers/Bundle/Application/8B9B1D4A-58C1-41A0-B547-0D55C3C3FF4C/BasecampShellPreview.app/BasecampShellPreview
+[spike] L1 dlopen(BareA) ok in 4.804 ms
+[spike] L1 BareA: dispatch=15f2605b8 methods=[{"kind":"method","name":"whoami","params":[],"returns":"object"}] module_protocol=0.8.0+spike-A whoami.module=A whoami.host_protocol=0.8.0+spike-host-standin (host has 0.8.0+spike-host-standin)
+[spike] L1 verdict: PASS
+[spike] L3 dlopen(BareB) ok in 4.587 ms
+[spike] L3 BareA: dispatch=15f2605b8 methods=[{"kind":"method","name":"whoami","params":[],"returns":"object"}] module_protocol=0.8.0+spike-A whoami.module=A whoami.host_protocol=0.8.0+spike-host-standin (host has 0.8.0+spike-host-standin)
+[spike] L3 BareB: dispatch=15f2705b8 methods=[{"kind":"method","name":"whoami","params":[],"returns":"object"}] module_protocol=0.8.0+spike-B whoami.module=B whoami.host_protocol=0.8.0+spike-host-standin (host has 0.8.0+spike-host-standin)
+[spike] L3 dlsym(RTLD_DEFAULT, logos_module_dispatch) = 0x0 (expect null: RTLD_LOCAL)
+[spike] L3 verdict: PASS
+[spike] L2 dlopen(SpikeUi) FAILED: dlopen(/Users/alexjbanca/Library/Developer/CoreSimulator/Devices/40696C9C-F8EE-483F-83FF-AFA89CCC5FE7/data/Containers/Bundle/Application/8B9B1D4A-58C1-41A0-B547-0D55C3C3FF4C/BasecampShellPreview.app/Frameworks/SpikeUi.framework/SpikeUi, 0x0006): symbol not found in flat namespace '__ZN10QByteArray6_emptyE'
+[spike] L2 verdict: FAIL
+[spike] dyld images: 492 before, 494 after
+SPIKE RESULT level1=PASS level2=FAIL level3=PASS dlopen_ms bareA=4.804 bareB=4.587 spikeUi=3.473
