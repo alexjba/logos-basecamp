@@ -4,7 +4,7 @@
   inputs = {
     # Fork branch carrying the mobile toolchains until logos-co/logos-nix#7 and
     # #8 merge; switch back to github:logos-co/logos-nix then.
-    logos-nix.url = "github:alexjba/logos-nix/feat/mobile-cross-toolchains";
+    logos-nix.url = "github:alexjba/logos-nix/spike/liblogos-mobile";
     # Follow the same nixpkgs as logos-nix
     nixpkgs.follows = "logos-nix/nixpkgs";
     logos-cpp-sdk.url = "github:logos-co/logos-cpp-sdk";
@@ -108,6 +108,44 @@
         inherit pkgs;
         common = import "${logos-design-system}/nix/common.nix" { inherit pkgs; };
       };
+      # spike/liblogos-mobile: the source trees liblogos_core is built from on
+      # the mobile targets, and the build-platform packages that are
+      # platform-neutral (header-only / INTERFACE-only).
+      spikeSrcs = {
+        protocol = logos-protocol;
+        pluginQt = logos-plugin-qt;
+        package = logos-package;
+        module = logos-module;
+        processStats = logos-liblogos.inputs.process-stats;
+        containerSubprocess = logos-liblogos.inputs.default-container;
+        moduleLoaderQt = logos-module-loader-qt;
+        packageManager = logos-package-manager;
+        liblogos = logos-liblogos;
+      };
+      spikeNative = buildSystem: pkgs: {
+        cppSdk = logos-cpp-sdk.packages.${buildSystem}.default;
+        qtSdk = logos-qt-sdk.packages.${buildSystem}.default;
+        logosContainer = logos-liblogos.inputs.logos-container.packages.${buildSystem}.default;
+        logosModuleLoader = logos-liblogos.inputs.logos-module-loader.packages.${buildSystem}.default;
+        cppSemver = import "${logos-package}/nix/cpp-semver.nix" { pkgs = pkgs.pkgsBuildBuild; };
+      };
+      androidSpikePackages = buildSystem: pkgs:
+        let
+          spike = import ./spike/liblogos-mobile/nix/liblogos-android.nix {
+            inherit pkgs;
+            srcs = spikeSrcs;
+            native = spikeNative buildSystem pkgs;
+          };
+        in {
+          liblogos-android = spike.liblogos;
+          liblogos-android-protocol = spike.protocol;
+          liblogos-android-lgx = spike.lgx;
+          liblogos-android-package-manager = spike.packageManager;
+          liblogos-android-module-loader-qt = spike.moduleLoaderQt;
+        } // import ./spike/liblogos-mobile/nix/smoke-host-android.nix {
+          inherit pkgs spike;
+          src = ./.;
+        };
       forAllMobileTargets = f: logos-nix.lib.forAllMobileTargets ({ system, pkgs, buildSystem }:
         f {
           inherit system pkgs buildSystem;
@@ -219,8 +257,31 @@
           }).version;
           designSystemSrc = logos-design-system;
         }
+        # spike/liblogos-mobile: liblogos_core and its whole link set as static
+        # archives, plus the smoke host that runs it on the simulator/device.
+        // (let
+          spike = import ./spike/liblogos-mobile/nix/liblogos-ios.nix {
+            inherit pkgs;
+            srcs = spikeSrcs;
+            native = spikeNative buildSystem pkgs;
+          };
+        in {
+          liblogos-ios = spike.liblogos;
+          liblogos-ios-protocol = spike.protocol;
+          liblogos-ios-qt-host = spike.qtHost;
+          liblogos-ios-lgx = spike.lgx;
+          liblogos-ios-module = spike.logosModule;
+          liblogos-ios-process-stats = spike.processStats;
+          liblogos-ios-container-subprocess = spike.containerSubprocess;
+          liblogos-ios-module-loader-qt = spike.moduleLoaderQt;
+          liblogos-ios-package-manager = spike.packageManager;
+        } // import ./spike/liblogos-mobile/nix/smoke-host-ios.nix {
+          inherit pkgs spike;
+          src = ./.;
+        })
       ) // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isAndroid
-        (androidPackages { inherit pkgs logosDesignSystem; })
+        (androidPackages { inherit pkgs logosDesignSystem; }
+        // androidSpikePackages buildSystem pkgs)
       ) // forAllSystems ({ pkgs, system, logosSdk, logosSdkBuild, logosProtocolPkg, logosQtHost, logosQtSdk, logosModule, logosLiblogos, logosLiblogosPortable, logosPackageManagerLibrary, logosPackageManagerModule, logosPackageManagerModuleLib, logosPackageManagerModuleLibPortable, logosPackageDownloaderModule, logosPackageDownloaderModuleLib, logosPackageLib, logosPackageHeaders, logosPackageManagerUI, logosCapabilityModule, logosModulesStateModule, logosDesignSystem, logosViewModuleRuntime, logosQtMcp, installDev, installPortable, dirBundler, ... }:
         let
           # Common configuration
@@ -626,7 +687,11 @@
           shell-preview-android =
             let pkgs = logos-nix.legacyPackages.${system}.pkgsAndroid;
             in (androidPackages { inherit pkgs; logosDesignSystem = mobileDesignSystemFor pkgs; }).shell-preview-android;
-        } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+        } // pkgs.lib.optionalAttrs (builtins.elem system logos-nix.lib.androidBuildSystems)
+          # spike/liblogos-mobile: the smoke APK built from this machine.
+          # Run: nix run .#run-liblogos-android
+          (androidSpikePackages system logos-nix.legacyPackages.${system}.pkgsAndroid)
+        // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           bin-appimage = nix-bundle-appimage.lib.${system}.mkAppImage {
             drv = appDistributed;
             name = "logos-basecamp";

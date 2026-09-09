@@ -1,0 +1,12 @@
+--- a/CMakeLists.txt	2026-09-09 16:39:34
++++ b/CMakeLists.txt	2026-09-09 16:39:34
+@@ -80,7 +80,9 @@
+ )
+ 
+ # Add command-line binary
++if(NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
+ add_subdirectory(cmd)
++endif()
+ 
+ # Testing (optional)
+ option(LOGOS_MODULE_BUILD_TESTS "Build tests" OFF)

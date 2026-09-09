@@ -1,0 +1,40 @@
+--------- beginning of main
+[qt] LogosModeConfig: Mode set to "Local"
+[qt] LogosModeConfig: Mode set to "Local"
+[smoke] base dir: /data/user/0/co.logos.spike.liblogos/files/logos
+[smoke] protocol: 0.9.0 (abi major 0)
+[smoke] logos_core_start: 0 ms
+[smoke] modules_info: []
+[smoke] known modules: 0
+[smoke] LEVEL A: core up (7 ms since main)
+[smoke] static plugins: 1
+[qt] [LogosProviderObject] LogosAPIProvider: wrapping QObject in QtProviderObject for "counter"
+[qt] [LogosProviderObject] QtProviderObject: connected to QObject eventResponse signal
+[qt] [LogosProviderObject] ModuleProxy: created, wrapping LogosProviderObject "counter"
+[qt] [LogosProviderObject] LogosAPIProvider: no authToken property - handshake surface will refuse until the initializer seeds the token store; consumers fall back to the business object
+[qt] PluginRegistry: Registered plugin with key: "logos_plugin_counter__handshake"
+[qt] LocalTransportHost: Published object: "counter__handshake"
+[qt] [LogosProviderObject] LogosAPIProvider: published handshake surface "counter__handshake" - token delivery is reachable while "counter" initializes
+[qt] [LogosProviderObject] QtProviderObject: calling initLogos on wrapped QObject
+[qt] PluginRegistry: Registered plugin with key: "logos_plugin_counter"
+[qt] LocalTransportHost: Published object: "counter"
+[qt] [LogosProviderObject] LogosAPIProvider: successfully published "counter"
+[qt] LogosAPIProvider: Delegating saveToken to module proxy for: "host"
+[qt] ModuleProxy: Token saved for module: "host"
+[qt] LogosAPIProvider: Delegating saveToken to module proxy for: "web"
+[qt] ModuleProxy: Token saved for module: "web"
+[qt] LocalTransportConnection: Local mode - no connection needed
+[qt] LocalTransportConnection: Local mode - no connection needed
+[qt] LogosAPIClient: invoking remote method "counter" "add" args_count: 2
+[qt] LogosAPIClient: getToken for module: "counter"
+[qt] LogosAPIClient: Found token for module: "counter"
+[qt] LogosAPIConsumer: Calling invokeRemoteMethod: "counter" "add" args_count: 2 timeout: 20000
+[qt] PluginRegistry: Found plugin: "counter"
+[qt] [LogosObject] LocalTransportConnection: returning LocalLogosObject for: "counter"
+[qt] [LogosObject] Created LocalLogosObject wrapping ModuleProxy 12970367440255053024
+[qt] [LogosObject] LogosAPIConsumer: calling via LogosObject::callMethod "add"
+[qt] [LogosObject] LocalLogosObject::callMethod "add" args: 2
+[qt] ModuleProxy: callRemoteMethod "add" args: 2
+[qt] [LogosProviderObject] ModuleProxy: forwarding event "added" as Qt signal
+[smoke] native host -> counter.add(1,2) = 3 in 0 ms
+[smoke] LEVEL B/C web half: iOS only in this spike (no WebView here)

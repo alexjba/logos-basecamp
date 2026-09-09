@@ -1,0 +1,19 @@
+[smoke] base dir: /var/mobile/Containers/Data/Application/AFAB9C90-0193-4A7F-941B-982E6FAE9014/Library/Application Support/Logos/LiblogosSmoke/logos
+[smoke] protocol: 0.9.0 (abi major 0)
+[smoke] logos_core_start: 1 ms
+[smoke] modules_info: []
+[smoke] known modules: 0
+[smoke] LEVEL A: core up (8 ms since main)
+[smoke] static plugins: 7
+[smoke] native host -> counter.add(1,2) = 3 in 0 ms
+[smoke] WKWebView attached (820x531), channel logos:// URL scheme
+[smoke] page ready
+[smoke] page -> counter.add([1,2]) = 3 in 0 ms
+[smoke] LEVEL B: page displays "3"
+[smoke] page subscribed to counter.valueChanged
+[smoke] page -> counter.increment([]) = 1 in 0 ms
+[smoke] event counter.valueChanged [1] -> page
+[smoke] page -> counter.increment([]) = 2 in 0 ms
+[smoke] event counter.valueChanged [2] -> page
+[smoke] page provides webpage: upper
+[smoke] LEVEL C: host -> webpage.upper("hello from native") = "HELLO FROM NATIVE" in 1 ms

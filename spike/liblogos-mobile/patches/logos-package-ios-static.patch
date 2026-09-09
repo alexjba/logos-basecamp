@@ -1,0 +1,159 @@
+--- a/CMakeLists.txt	2026-09-09 16:39:34
++++ b/CMakeLists.txt	2026-09-09 16:39:34
+@@ -41,7 +41,16 @@
+     endif()
+ endif()
+ 
+-find_package(ICU REQUIRED COMPONENTS uc i18n)
++# iOS has no ICU; CoreFoundation does the same NFC normalization and
++# case mapping (see src/core/path_normalizer.cpp).
++option(LGX_UNICODE_COREFOUNDATION "Use CoreFoundation instead of ICU for Unicode normalization" OFF)
++if(LGX_UNICODE_COREFOUNDATION)
++    set(LGX_UNICODE_LIBS "-framework CoreFoundation")
++    add_compile_definitions(LGX_UNICODE_COREFOUNDATION=1)
++else()
++    find_package(ICU REQUIRED COMPONENTS uc i18n)
++    set(LGX_UNICODE_LIBS ICU::uc ICU::i18n)
++endif()
+ 
+ # Try to find nlohmann_json first (for Nix and system installations)
+ # Fall back to FetchContent if not found
+@@ -107,8 +116,7 @@
+ 
+ target_link_libraries(lgx_core PUBLIC
+     ZLIB::ZLIB
+-    ICU::uc
+-    ICU::i18n
++    ${LGX_UNICODE_LIBS}
+     nlohmann_json::nlohmann_json
+     semver::semver
+     ${SODIUM_LIBRARIES}
+@@ -116,8 +124,15 @@
+ 
+ # Shared library (optional)
+ option(LGX_BUILD_SHARED "Build shared library" OFF)
++# The same C ABI as a static archive, for hosts that cannot load a dylib.
++option(LGX_STATIC_CABI "Build the lgx C ABI (lgx.h) as a static archive named liblgx.a" OFF)
++set(LGX_CABI_LIBRARY_TYPE SHARED)
++if(LGX_STATIC_CABI)
++    set(LGX_BUILD_SHARED ON)
++    set(LGX_CABI_LIBRARY_TYPE STATIC)
++endif()
+ if(LGX_BUILD_SHARED)
+-    add_library(lgx_shared SHARED
++    add_library(lgx_shared ${LGX_CABI_LIBRARY_TYPE}
+         src/lib.cpp
+         src/core/path_normalizer.cpp
+         src/core/gzip_handler.cpp
+@@ -141,8 +156,7 @@
+ 
+     target_link_libraries(lgx_shared PUBLIC
+         ZLIB::ZLIB
+-        ICU::uc
+-        ICU::i18n
++        ${LGX_UNICODE_LIBS}
+         nlohmann_json::nlohmann_json
+         semver::semver
+         ${SODIUM_LIBRARIES}
+@@ -165,6 +179,7 @@
+ endif()
+ 
+ # CLI executable
++if(NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
+ add_executable(lgx
+     src/main.cpp
+     src/commands/command.cpp
+@@ -199,6 +214,7 @@
+ endif()
+ 
+ install(TARGETS lgx RUNTIME DESTINATION bin)
++endif() # not iOS
+ install(TARGETS lgx_core ARCHIVE DESTINATION lib)
+ 
+ # Public headers. logos/semver.hpp is the shared semver implementation that
+--- a/src/core/path_normalizer.cpp	2026-09-09 16:39:34
++++ b/src/core/path_normalizer.cpp	2026-09-09 16:39:34
+@@ -1,16 +1,59 @@
+ #include "path_normalizer.h"
+ 
++#if defined(LGX_UNICODE_COREFOUNDATION)
++#include <CoreFoundation/CoreFoundation.h>
++#else
+ #include <unicode/normalizer2.h>
+ #include <unicode/unistr.h>
+ #include <unicode/uchar.h>
+ #include <unicode/utypes.h>
++#endif
+ 
+ #include <algorithm>
+ #include <sstream>
+ 
+ namespace lgx {
+ 
++#if defined(LGX_UNICODE_COREFOUNDATION)
++namespace {
++// CFMutableString round trip: UTF-8 in, transformed, UTF-8 out.
++std::optional<std::string> cfTransform(const std::string& in, void (*op)(CFMutableStringRef)) {
++    CFStringRef s = CFStringCreateWithBytes(kCFAllocatorDefault,
++        reinterpret_cast<const UInt8*>(in.data()), static_cast<CFIndex>(in.size()),
++        kCFStringEncodingUTF8, false);
++    if (!s) return std::nullopt;
++    CFMutableStringRef m = CFStringCreateMutableCopy(kCFAllocatorDefault, 0, s);
++    CFRelease(s);
++    if (!m) return std::nullopt;
++    op(m);
++    CFIndex used = 0;
++    CFRange all = CFRangeMake(0, CFStringGetLength(m));
++    CFStringGetBytes(m, all, kCFStringEncodingUTF8, 0, false, nullptr, 0, &used);
++    std::string out(static_cast<size_t>(used), '\0');
++    CFStringGetBytes(m, all, kCFStringEncodingUTF8, 0, false,
++        reinterpret_cast<UInt8*>(&out[0]), used, &used);
++    CFRelease(m);
++    return out;
++}
++void nfc(CFMutableStringRef m) { CFStringNormalize(m, kCFStringNormalizationFormC); }
++void lower(CFMutableStringRef m) { CFStringLowercase(m, nullptr); }
++} // namespace
++
+ std::optional<std::string> PathNormalizer::toNFC(const std::string& path) {
++    return cfTransform(path, nfc);
++}
++
++bool PathNormalizer::isNFC(const std::string& str) {
++    auto n = cfTransform(str, nfc);
++    return n && *n == str;
++}
++
++std::string PathNormalizer::toLowercase(const std::string& str) {
++    return cfTransform(str, lower).value_or(str);
++}
++#else
++
++std::optional<std::string> PathNormalizer::toNFC(const std::string& path) {
+     UErrorCode status = U_ZERO_ERROR;
+     const icu::Normalizer2* normalizer = icu::Normalizer2::getNFCInstance(status);
+     
+@@ -47,6 +90,7 @@
+     icu::UnicodeString ustr = icu::UnicodeString::fromUTF8(str);
+     return normalizer->isNormalized(ustr, status) && U_SUCCESS(status);
+ }
++#endif // LGX_UNICODE_COREFOUNDATION
+ 
+ PathNormalizer::ValidationResult PathNormalizer::validateArchivePath(const std::string& archivePath) {
+     // Check for empty path
+@@ -105,6 +149,7 @@
+     return result;
+ }
+ 
++#if !defined(LGX_UNICODE_COREFOUNDATION)
+ std::string PathNormalizer::toLowercase(const std::string& str) {
+     UErrorCode status = U_ZERO_ERROR;
+     icu::UnicodeString ustr = icu::UnicodeString::fromUTF8(str);
+@@ -114,6 +159,7 @@
+     ustr.toUTF8String(result);
+     return result;
+ }
++#endif // !LGX_UNICODE_COREFOUNDATION
+ 
+ std::string PathNormalizer::joinPath(const std::vector<std::string>& components) {
+     if (components.empty()) {
